@@ -1,6 +1,0 @@
-cmake_minimum_required(VERSION 3.2.3 FATAL_ERROR)
-set(CMAKE_OSX_DEPLOYMENT_TARGET 10.12)
-include("${CMAKE_CURRENT_SOURCE_DIR}/../deps/danssfml/CMakeInclude.txt")
-add_library(Sfml MODULE "${CMAKE_CURRENT_SOURCE_DIR}/../src/sfml.cpp")
-set_property(TARGET Sfml PROPERTY CXX_STANDARD 11)
-target_link_libraries(Sfml sfml-system sfml-window sfml-graphics)
