@@ -6,7 +6,7 @@ import sys
 
 sys.path.append(os.path.abspath('src'))
 
-#subprocess.check_call('git submodule update --init --recursive'.split())
+subprocess.check_call('git submodule update --init --recursive'.split())
 
 try: os.mkdir('built')
 except: pass
