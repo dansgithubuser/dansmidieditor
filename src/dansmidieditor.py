@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 
 import argparse
+import os
+import sys
 import time
+
+HOME=os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(HOME, '..', 'deps', 'danssfml', 'wrapper'))
 
 from config import controls
 import media
