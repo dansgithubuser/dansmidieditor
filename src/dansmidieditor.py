@@ -11,6 +11,8 @@ sys.path.append(os.path.join(HOME, '..', 'deps', 'danssfml', 'wrapper'))
 from config import controls
 import media
 
+media.init(title="Dan's MIDI Editor")
+
 def main():
 	while not controls.done:
 		while True:
