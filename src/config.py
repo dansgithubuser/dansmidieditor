@@ -161,6 +161,7 @@ class Controls(AbstractControls):
 			else: print('no such help topic "{}"'.format(args[0]))
 		return 'see terminal for details'
 	def command_tempo(self, quarters_per_minute): self.view.add_tempo(float(quarters_per_minute))
+	def command_track(self): self.view.midi.append([])
 
 	#callback
 	def on_input(self):
