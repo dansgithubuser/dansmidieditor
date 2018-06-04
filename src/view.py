@@ -37,6 +37,7 @@ class View:
 		self.visual.active=False
 		self.unwritten=False
 		self.banner_h=40
+		self.path='untitled.mid'
 		#colors
 		self.color_background=[  0,   0,   0]
 		self.color_staves    =[  0,  32,   0, 128]
