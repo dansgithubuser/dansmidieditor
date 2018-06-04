@@ -122,9 +122,13 @@ class Controls(AbstractControls):
 		command_name='command_'+name
 		params=command[1:]
 		if hasattr(self, command_name):
-			result=getattr(self, command_name)(*params)
-			if type(result)==str: self.message(result)
-			else: self.reset()
+			try:
+				result=getattr(self, command_name)(*params)
+				if type(result)==str: self.message(result)
+				else: self.reset()
+			except Exception as e:
+				print(e)
+				self.message('error!')
 		else: self.message('no such command "{}"'.format(name))
 
 	def check_unwritten(self):
