@@ -135,9 +135,10 @@ class View:
 		if note==None: return
 		return midi.remove_note(note)
 
-	def transpose_note(self, note, amount):
-		if note==None: return
-		midi.transpose_note(note, amount)
+	def transpose_notes(self, notes, amount):
+		for note in notes:
+			if note==None: continue
+			midi.transpose_note(note, amount)
 
 	def skip_note(self):
 		self.cursor.ticks+=self.cursor.duration
@@ -167,7 +168,7 @@ class View:
 	def deselect(self): self.selected=set()
 
 	def is_selected(self, note):
-		return any([self.midi[i[0]][i[1]]==note for i in self.selected])
+		return any([self.midi[i.track][i.index]==note for i in self.selected])
 
 	def delete(self):
 		midi.delete(self.midi, self.selected)
@@ -225,9 +226,9 @@ class View:
 	def put(self):
 		if not self.yanked: return
 		notes=list(self.yanked)
-		start=min([self.midi[track][index].ticks() for track, index in notes])
-		for track, index in notes:
-			note=self.midi[track][index]
+		start=min([self.midi[i.track][i.index].ticks() for i in notes])
+		for i in notes:
+			note=self.midi[i.track][i.index]
 			midi.add_note(
 				self.midi,
 				self.cursor.staff+1,
@@ -239,7 +240,7 @@ class View:
 		self.cursor.ticks+=self.visual.duration
 
 	def info(self):
-		for track, index in sorted(list(self.selected)): print(self.midi[track][index])
+		for i in sorted(self.selected, key=lambda x: (x.track, x.index)): print(self.midi[i.track][i.index])
 
 	#drawing
 	def staves_to_draw(self):

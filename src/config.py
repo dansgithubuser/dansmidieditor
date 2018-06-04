@@ -52,6 +52,8 @@ order 0
 .* >y: self.view.yank(); self.clear()
 .* >p: self.view.put(); self.clear()
  <.Shift <i$: self.view.info(); self.clear()
+ <PageUp >PageUp:     self.view.transpose_notes(self.view.selected,  12); self.clear()
+ <PageDown >PageDown: self.view.transpose_notes(self.view.selected, -12); self.clear()
 
 mode command
  .*>Return: self.command()
@@ -70,8 +72,8 @@ mode insert
  <j >j:         self.view.add_note(10); self.clear()
  <m >m:         self.view.add_note(11); self.clear()
  <Space >Space: self.view.skip_note( ); self.clear()
- <PageUp >PageUp:     self.view.transpose_note(self.view.previous_note(),  12); self.clear()
- <PageDown >PageDown: self.view.transpose_note(self.view.previous_note(), -12); self.clear()
+ <PageUp >PageUp:     self.view.transpose_notes([self.view.previous_note()],  12); self.clear()
+ <PageDown >PageDown: self.view.transpose_notes([self.view.previous_note()], -12); self.clear()
 
 mode (insert|normal)
 .* >d: self.view.set_duration(self.fraction()); self.clear()
