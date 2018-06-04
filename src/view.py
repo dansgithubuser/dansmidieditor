@@ -67,7 +67,7 @@ class View:
 		self.unwritten=False
 
 	#cursor
-	def cursor_down(self, amount):
+	def cursor_down(self, amount=1):
 		self.cursor.staff+=amount
 		self.cursor.staff=max(self.cursor.staff, 0)
 		self.cursor.staff=min(self.cursor.staff, len(self.midi)-2)
@@ -80,9 +80,9 @@ class View:
 		self.cursor.note%=12
 		self.cursor.note+=self.calculate_octave(self.cursor.staff)*12
 
-	def cursor_up(self, amount): self.cursor_down(-amount)
+	def cursor_up(self, amount=1): self.cursor_down(-amount)
 
-	def cursor_right(self, amount):
+	def cursor_right(self, amount=1):
 		self.cursor.ticks+=self.cursor.duration*amount
 		self.cursor.ticks=max(Fraction(0), self.cursor.ticks)
 		#move left if cursor is left of window
@@ -95,25 +95,25 @@ class View:
 		self.cursor.note%=12
 		self.cursor.note+=self.calculate_octave(self.cursor.staff)*12
 
-	def cursor_left(self, amount): self.cursor_right(-amount)
+	def cursor_left(self, amount=1): self.cursor_right(-amount)
 
-	def cursor_note_down(self, amount):
+	def cursor_note_down(self, amount=1):
 		self.cursor.note-=amount
 		self.cursor.note=max(0, self.cursor.note)
 		self.cursor.note=min(127, self.cursor.note)
 
-	def cursor_note_up(self, amount): self.cursor_note_down(-amount)
+	def cursor_note_up(self, amount=1): self.cursor_note_down(-amount)
 
 	def set_duration(self, fraction_of_quarter):
 		self.cursor.duration=Fraction(self.ticks_per_quarter())*fraction_of_quarter
 
 	#window
-	def more_multistaffing(self, amount):
+	def more_multistaffing(self, amount=1):
 		self.multistaffing+=amount
 		self.multistaffing=max(1, self.multistaffing)
 		self.multistaffing=min(6, self.multistaffing)
 
-	def less_multistaffing(self, amount): self.more_multistaffing(-amount)
+	def less_multistaffing(self, amount=1): self.more_multistaffing(-amount)
 
 	#notes
 	def add_note(self, number, advance=True):
@@ -125,7 +125,7 @@ class View:
 			int(self.cursor.duration*self.cursor.duty),
 			number+12*octave
 		)
-		if advance: self.skip_note()
+		if advance: self.cursor_right()
 		self.unwritten=True
 
 	def previous_note(self):
@@ -139,9 +139,6 @@ class View:
 		for note in notes:
 			if note==None: continue
 			midi.transpose_note(note, amount)
-
-	def skip_note(self):
-		self.cursor.ticks+=self.cursor.duration
 
 	#other midi events
 	def add_tempo(self, quarters_per_minute):

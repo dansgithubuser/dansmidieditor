@@ -77,7 +77,7 @@ mode insert
  <n >n:         self.view.add_note( 9); self.clear()
  <j >j:         self.view.add_note(10); self.clear()
  <m >m:         self.view.add_note(11); self.clear()
- <Space >Space: self.view.skip_note( ); self.clear()
+ <Space >Space: self.view.cursor_right(); self.clear()
  <PageUp >PageUp:     self.view.transpose_notes([self.view.previous_note()],  12); self.clear()
  <PageDown >PageDown: self.view.transpose_notes([self.view.previous_note()], -12); self.clear()
 
