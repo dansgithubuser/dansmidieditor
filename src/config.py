@@ -12,6 +12,10 @@ order -1
   for i in reversed(range(len(self.sequence)-2)):
    if self.sequence[i][0]=='<': break
   self.sequence=self.sequence[:i]
+ elif self.mode in ['insert', 'normal'] and len(self.sequence)==2:
+  note=self.view.remove_note(self.view.previous_note())
+  if note: self.view.cursor.coincide_note(note)
+  self.sequence=self.sequence[:-2]
  else: self.sequence=self.sequence[:-3]
 end
 .* x.*: self.sequence=self.sequence[:-1]
@@ -77,11 +81,6 @@ mode insert
 
 mode (insert|normal)
 .* >d: self.view.set_duration(self.fraction()); self.clear()
-order -2
-.* <.Shift <Backspace >Backspace:
- note=self.view.remove_note(self.view.previous_note())
- if note: self.view.cursor.coincide_note(note)
- self.sequence=self.sequence[:-2]
 '''
 
 class Controls(AbstractControls):
