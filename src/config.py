@@ -58,6 +58,8 @@ order 0
  <.Shift <i$: self.view.info(); self.clear()
  <PageUp >PageUp:     self.view.transpose_notes(self.view.selected,  12); self.clear()
  <PageDown >PageDown: self.view.transpose_notes(self.view.selected, -12); self.clear()
+ <z >z: self.view.duration+=360*4; self.clear()
+ <c >c: self.view.duration-=360*4; self.view.duration=max(360*4, self.view.duration); self.clear()
 
 mode command
  .*>Return: self.command()
