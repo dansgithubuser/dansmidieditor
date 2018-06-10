@@ -55,7 +55,7 @@ order 0
 .* >x: if self.shift: self.view.less_multistaffing(self.reps()); self.clear()
  <.Shift <;$:     self.mode='command'; self.clear()
 .* >v: self.view.toggle_visual(); self.clear()
-.* >y: self.view.yank(); self.clear()
+.* >y: self.view.yank(); self.view.deselect(); self.clear()
 .* >p: self.view.put(); self.clear()
  <.Shift <i$: self.view.info(); self.clear()
  <PageUp >PageUp:     self.view.transpose_notes(self.view.selected,  12); self.clear()

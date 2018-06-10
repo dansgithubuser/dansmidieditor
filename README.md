@@ -1,6 +1,5 @@
 todo
 ----
-- yank/put across tracks doesn't work
 - title is D
 
 - quantization

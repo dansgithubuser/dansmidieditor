@@ -168,6 +168,7 @@ class View:
 		return any([self.midi[i.track][i.index]==note for i in self.selected])
 
 	def delete(self):
+		self.yank()
 		midi.delete(self.midi, self.selected)
 		self.selected=set()
 		self.unwritten=True
@@ -221,24 +222,22 @@ class View:
 
 	def yank(self):
 		if self.visual.active: self.toggle_visual()
-		self.yanked=self.selected
-		self.deselect()
+		self.yanked=[{'track': i.track, 'event': self.midi[i.track][i.index]} for i in self.selected]
 
-	def unyank(self): self.yanked=set()
+	def unyank(self): self.yanked=[]
 
 	def put(self):
 		if not self.yanked: return
-		notes=list(self.yanked)
-		start=min([self.midi[i.track][i.index].ticks() for i in notes])
-		for i in notes:
-			note=self.midi[i.track][i.index]
+		start=min([i['event'].ticks() for i in self.yanked])
+		staff_i=min([i['track'] for i in self.yanked])
+		for i in self.yanked:
 			midi.add_note(
 				self.midi,
-				self.cursor.staff+1,
-				int(self.cursor.ticks-start+note.ticks()),
-				note.duration(),
-				note.number(),
-				note.channel(),
+				self.cursor.staff+1+i['track']-staff_i,
+				int(self.cursor.ticks-start+i['event'].ticks()),
+				i['event'].duration(),
+				i['event'].number(),
+				i['event'].channel(),
 			)
 		self.cursor.ticks+=self.visual.duration
 
