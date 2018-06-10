@@ -150,6 +150,7 @@ class View:
 
 	#selection
 	def select(self):
+		if self.visual.active: self.toggle_visual(); return
 		args=[
 			self.midi,
 			self.cursor.staff+1,
@@ -205,20 +206,6 @@ class View:
 		if not self.visual.active: return False
 		self.visual.active=False
 		return True
-
-	def select(self):
-		if self.visual.active: self.toggle_visual(); return
-		args=[
-			self.midi,
-			self.cursor.staff+1,
-			self.cursor.ticks,
-			self.cursor.duration,
-		]
-		notes=midi.notes_in(*args, number=self.cursor.note)
-		if not notes: notes=midi.notes_in(*args, number=self.cursor.note, generous=True)
-		if not notes: notes=midi.notes_in(*args)
-		if not notes: notes=midi.notes_in(*args, generous=True)
-		for i in notes: self.selected.add(i)
 
 	def yank(self):
 		if self.visual.active: self.toggle_visual()
