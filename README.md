@@ -1,6 +1,5 @@
 todo
 ----
-- visual isn't displaying correctly across tracks
 - yank/put across tracks doesn't work
 - title is D
 

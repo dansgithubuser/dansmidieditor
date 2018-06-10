@@ -380,11 +380,13 @@ class View:
 		#visual
 		if self.visual.active:
 			start, finish=self.get_visual_duration()
+			staff_i=min(self.visual.staff, self.cursor.staff)
+			staff_f=max(self.visual.staff, self.cursor.staff)
 			media.fill(
 				xi=self.x_ticks(int(start)),
 				xf=self.x_ticks(int(finish)),
-				y=self.y_note(self.visual.staff, self.notes_per_staff()-1),
-				h=int(self.h_note()*self.notes_per_staff()),
+				yi=self.y_note(staff_i, self.notes_per_staff()),
+				yf=self.y_note(staff_f, -1),
 				color=self.color_visual,
 			)
 		#text
