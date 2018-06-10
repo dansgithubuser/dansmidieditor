@@ -200,7 +200,13 @@ class View:
 			self.visual=copy.deepcopy(self.cursor)
 			self.visual.active=True
 
+	def cancel_visual(self):
+		if not self.visual.active: return False
+		self.visual.active=False
+		return True
+
 	def select(self):
+		if self.visual.active: self.toggle_visual(); return
 		args=[
 			self.midi,
 			self.cursor.staff+1,

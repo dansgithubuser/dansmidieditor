@@ -32,7 +32,9 @@ order 1
 
 mode normal
 order -2
- <Esc >Esc:       self.view.deselect(); self.clear()
+ <Esc >Esc:
+ self.view.cancel_visual() or self.view.deselect()
+ self.clear()
 order 0
 .* >j:
  if self.shift:   self.view.cursor_note_down(self.reps())
