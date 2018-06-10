@@ -1,7 +1,5 @@
 todo
 ----
-- title is D
-
 - quantization
 - niceties
 	- controls -- regex list into regex with a bunch of |s
