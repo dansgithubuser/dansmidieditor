@@ -290,7 +290,7 @@ class View:
 				yf=self.h_window,
 				color=self.color_quarter
 			)
-		media.draw_vertices()
+		media.vertices_draw()
 		#staves
 		h=int(self.h_note())
 		for m in range(self.multistaffing):
@@ -298,7 +298,7 @@ class View:
 				media.fill(xi=0, xf=self.w_window, y=self.y_note(i, 24*m), h=h, color=self.color_c_line)
 				for j in [4, 7, 11, 14, 17]:
 					media.fill(xi=0, xf=self.w_window, y=self.y_note(i, j+24*m), h=h, color=self.color_staves)
-		media.draw_vertices()
+		media.vertices_draw()
 		#octaves
 		octaves={}
 		for i in self.staves_to_draw():
@@ -331,7 +331,7 @@ class View:
 						**kwargs
 					)
 				else: print(j)
-		media.draw_vertices()
+		media.vertices_draw()
 		#other events
 		for i in self.midi[0]:
 			text=None
