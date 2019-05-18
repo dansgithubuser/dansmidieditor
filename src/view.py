@@ -156,6 +156,10 @@ class View:
 				i.channel(),
 			)
 
+	def quantize(self, divisor):
+		midi.quantize(self.midi, divisor)
+		self.unwritten=True
+
 	#other midi events
 	def add_tempo(self, quarters_per_minute):
 		us_per_quarter=us_per_minute/quarters_per_minute
@@ -200,6 +204,10 @@ class View:
 
 	def durate(self, amount):
 		midi.durate(self.midi, self.selected, int(self.cursor.duration*amount))
+		self.unwritten=True
+
+	def set_velocity_on(self, velocity):
+		midi.set_velocity_on(self.midi, self.selected, velocity)
 		self.unwritten=True
 
 	def get_visual_duration(self):

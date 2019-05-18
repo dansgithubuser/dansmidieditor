@@ -1,5 +1,5 @@
 from controls import AbstractControls
-from view import View, midi
+from view import View
 import re
 import traceback
 
@@ -191,7 +191,9 @@ class Controls(AbstractControls):
 	def command_track(self): self.view.midi.append([])
 	def command_quantize(self, divisor=None):
 		if divisor is None: divisor=self.view.ticks_per_quarter()/self.view.cursor.duration
-		midi.quantize(self.view.midi, int(divisor))
+		self.view.quantize(int(divisor))
+	def command_velocity_on(self, velocity):
+		self.view.set_velocity_on(int(velocity))
 
 	#callback
 	def on_input(self):
