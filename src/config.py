@@ -1,6 +1,7 @@
 from controls import AbstractControls
-from view import View
+from view import View, midi
 import re
+import traceback
 
 configuration='''
 mode .*
@@ -130,8 +131,8 @@ class Controls(AbstractControls):
 				result=getattr(self, command_name)(*params)
 				if type(result)==str: self.message(result)
 				else: self.reset()
-			except Exception as e:
-				print(e)
+			except:
+				traceback.print_exc()
 				self.message('error!')
 		else: self.message('no such command "{}"'.format(name))
 
@@ -171,6 +172,7 @@ class Controls(AbstractControls):
 		return 'see terminal for details'
 	def command_tempo(self, quarters_per_minute): self.view.add_tempo(float(quarters_per_minute))
 	def command_track(self): self.view.midi.append([])
+	def command_quantize(self, divisor): midi.quantize(self.view.midi, int(divisor))
 
 	#callback
 	def on_input(self):
