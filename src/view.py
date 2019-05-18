@@ -178,6 +178,14 @@ class View:
 		midi.transpose(self.midi, self.selected, amount)
 		self.unwritten=True
 
+	def translate(self, amount):
+		midi.translate(self.midi, self.selected, int(self.cursor.duration*amount))
+		self.unwritte=True
+
+	def durate(self, amount):
+		midi.durate(self.midi, self.selected, int(self.cursor.duration*amount))
+		self.unwritten=True
+
 	def get_visual_duration(self):
 		ticks=sorted([
 			self.visual.ticks, self.visual.ticks+self.visual.duration,
