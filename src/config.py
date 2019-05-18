@@ -100,7 +100,7 @@ mode insert
 
 mode (insert|normal)
 .* >d:
- if self.view.selected: self.view.durate(self.reps())
+ if self.view.selected: self.view.durate(self.fraction())
  else: self.view.set_duration(self.fraction())
  self.clear()
 '''
@@ -189,7 +189,9 @@ class Controls(AbstractControls):
 		return 'see terminal for details'
 	def command_tempo(self, quarters_per_minute): self.view.add_tempo(float(quarters_per_minute))
 	def command_track(self): self.view.midi.append([])
-	def command_quantize(self, divisor): midi.quantize(self.view.midi, int(divisor))
+	def command_quantize(self, divisor=None):
+		if divisor is None: divisor=self.view.ticks_per_quarter()/self.view.cursor.duration
+		midi.quantize(self.view.midi, int(divisor))
 
 	#callback
 	def on_input(self):
