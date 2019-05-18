@@ -65,6 +65,18 @@ order 0
  <PageDown >PageDown: self.view.transpose_notes(self.view.selected, -12);          self.clear()
  <z >z:               self.view.duration+=360*4;                                   self.clear()
  <c >c:               self.view.duration=max(360*4, self.view.duration-360*4);     self.clear()
+ <a <z >z:            self.view.harmonize(self.view.selected, 12);                 self.clear()
+ <a <s >s:            self.view.harmonize(self.view.selected,  1);                 self.clear()
+ <a <x >x:            self.view.harmonize(self.view.selected,  2);                 self.clear()
+ <a <d >d:            self.view.harmonize(self.view.selected,  3);                 self.clear()
+ <a <c >c:            self.view.harmonize(self.view.selected,  4);                 self.clear()
+ <a <v >v:            self.view.harmonize(self.view.selected,  5);                 self.clear()
+ <a <g >g:            self.view.harmonize(self.view.selected,  6);                 self.clear()
+ <a <b >b:            self.view.harmonize(self.view.selected,  7);                 self.clear()
+ <a <h >h:            self.view.harmonize(self.view.selected,  8);                 self.clear()
+ <a <n >n:            self.view.harmonize(self.view.selected,  9);                 self.clear()
+ <a <j >j:            self.view.harmonize(self.view.selected, 10);                 self.clear()
+ <a <m >m:            self.view.harmonize(self.view.selected, 11);                 self.clear()
 
 mode command
  .*>Return: self.command()

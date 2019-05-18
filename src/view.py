@@ -140,6 +140,22 @@ class View:
 			if note==None: continue
 			midi.transpose_note(note, amount)
 
+	def harmonize(self, notes, amount):
+		events=[]
+		for note in notes:
+			if note==None: continue
+			events.append(self.midi[note.track][note.index])
+			events[-1].track=note.track
+		for i in events:
+			midi.add_note(
+				self.midi,
+				i.track,
+				i.ticks(),
+				i.duration(),
+				i.number()+amount,
+				i.channel(),
+			)
+
 	#other midi events
 	def add_tempo(self, quarters_per_minute):
 		us_per_quarter=us_per_minute/quarters_per_minute
