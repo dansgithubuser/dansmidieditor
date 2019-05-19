@@ -117,7 +117,12 @@ class View:
 
 	#notes
 	def add_note(self, number, advance=True):
-		octave=self.calculate_octave(self.cursor.staff)
+		octave=None
+		for i in self.midi[1+self.cursor.staff]:
+			if i.type()!='note': continue
+			if i.ticks()>self.ticks: break
+			octave=i.number()//12
+		if octave is None: octave=self.calculate_octave(self.cursor.staff)
 		midi.add_note(
 			self.midi,
 			self.cursor.staff+1,
