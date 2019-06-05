@@ -5,7 +5,7 @@ import traceback
 
 configuration='''
 mode .*
-order -1
+order -200
 .* q: self.command('quit')
 .* <Backspace >Backspace:
  if self.mode=='command':
@@ -26,13 +26,13 @@ end
 .* <.Shift$: self.shift=True
 .+ >.Shift$: self.shift=False
  >.Shift$: self.shift=False; self.clear()
-order 0
+order -100
 .* >Esc: self.clear()
-order 1
+order 100
  >: self.clear()
 
 mode normal
-order -2
+order -300
  <Esc >Esc:
  self.view.cancel_visual() or self.view.deselect()
  self.clear()
