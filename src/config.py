@@ -117,6 +117,9 @@ class Controls(AbstractControls):
 			'e': 'edit',
 			'w': 'write',
 			'h': 'help',
+			'von': 'velocity_on',
+			'velocity_down': 'velocity_on',
+			'vd': 'velocity_on',
 		}
 		self.messaging=False
 
