@@ -91,9 +91,6 @@ class View:
 		right=self.ticks+self.duration
 		cursor_right=self.cursor.ticks+self.cursor.duration
 		if cursor_right>right: self.ticks+=int(cursor_right)-right
-		#figure cursor octave
-		self.cursor.note%=12
-		self.cursor.note+=self.calculate_octave(self.cursor.staff)*12
 
 	def cursor_left(self, amount=1): self.cursor_right(-amount)
 
