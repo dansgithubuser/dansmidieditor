@@ -5,7 +5,7 @@ home=os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(home, '..', 'deps', 'dansmidilibs'))
 import midi
 
-us_per_minute=60.0*1000**2
+us_per_minute=60e6
 
 class Cursor:
 	def __init__(self, ticks_per_quarter):
