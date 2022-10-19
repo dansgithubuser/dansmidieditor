@@ -2,7 +2,7 @@
 
 #===== imports =====#
 #----- project -----#
-from config import controls
+from config import configure
 from editor import Editor
 
 #----- 3rd party -----#
@@ -10,6 +10,10 @@ import pyglet
 
 #----- standard -----#
 import sys
+
+#===== init =====#
+editor = Editor()
+controls = configure(editor)
 
 #===== args =====#
 for arg in sys.argv[1:]:
@@ -114,7 +118,7 @@ def translate_modifiers(pyglet_modifiers):
         modifiers.add('alt')
 
 #===== run =====#
-window = pyglet.window.Window(caption="Dan's MIDI Editor", vsync=True)
+window = pyglet.window.Window(caption="Dan's MIDI Editor", vsync=True, resizable=True)
 
 @window.event
 def on_key_press(symbol, modifiers):

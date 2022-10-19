@@ -1,5 +1,6 @@
-from controls import AbstractControls
-from view import View
+from controls import Controls
+from editor import Editor
+
 import re
 import traceback
 
@@ -105,12 +106,11 @@ mode (insert|normal)
  self.clear()
 '''
 
-class Controls(AbstractControls):
+class Mode:
 	def __init__(self):
-		self.configure(configuration)
-		AbstractControls.__init__(self)
+		#self.configure(configuration)
 		self.done=False
-		self.view=View()
+		#self.view=View()
 		self.shift=False
 		self.command_aliases={
 			'q': 'quit',
@@ -205,4 +205,7 @@ class Controls(AbstractControls):
 		elif self.mode=='insert' : self.view.text='i'+''.join(self.sequence)
 		else                     : self.view.text=    ''.join(self.sequence)
 
-controls=Controls()
+def configure(editor):
+    controls = Controls(Mode())
+    controls.udata['done'] = False
+    return controls

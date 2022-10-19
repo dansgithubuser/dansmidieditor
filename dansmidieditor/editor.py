@@ -19,6 +19,56 @@ class Cursor:
         self.ticks=Fraction(note.ticks())
         self.duration=Fraction(note.duration())
 
+class Batch:
+    def __init__(self, pyglet, h_window):
+        self.pyglet = pyglet
+        self.h_window = h_window
+        self.batch = None
+        self.list = []
+        self.reset()
+
+    def add_fill(self, xi, yi, xf=None, yf=None, w=None, h=None, color=(1, 1, 1, 1)):
+        if w:
+            xf = xi + w
+        if h:
+            yf = yi + h
+        yi = self.h_window - yi
+        yf = self.h_window - yf
+        rectangle = self.pyglet.shapes.Rectangle(
+            xi,
+            yi,
+            xf-xi,
+            yf-yi,
+            color=tuple(int(255*i) for i in color[:3]),
+            batch=self.batch,
+        )
+        rectangle.opacity = int(color[3] * 255)
+        self.list.append(rectangle)
+
+    def add_text(self, s, x, y, h, color, anchor_x='left', anchor_y='top'):
+        y = self.h_window - y
+        label = self.pyglet.text.Label(
+            s,
+            font_name='Courier New',
+            font_size=h,
+            x=x,
+            y=y,
+            anchor_x='left',
+            anchor_y=anchor_y,
+            color=tuple(int(255*i) for i in color),
+            batch=self.batch,
+        )
+        self.list.append(label)
+
+    def draw(self, reset):
+        self.batch.draw()
+        if reset:
+            self.reset()
+
+    def reset(self):
+        self.batch = self.pyglet.graphics.Batch()
+        self.list.clear()
+
 class Editor:
     def __init__(self, margin=6, text_size=12):
         self.midi=midi.empty_midi()
@@ -39,16 +89,17 @@ class Editor:
         self.banner_h=40
         self.path='untitled.mid'
         #colors
-        self.color_background=[  0,   0,   0]
-        self.color_staves    =[  0,  32,   0, 128]
-        self.color_c_line    =[ 16,  16,  16, 128]
-        self.color_quarter   =[  8,   8,   8]
-        self.color_notes     =[  0, 128, 128]
-        self.color_other     =[  0, 128,   0]
-        self.color_cursor    =[128,   0, 128, 128]
-        self.color_visual    =[255, 255, 255,  64]
-        self.color_selected  =[255, 255, 255]
-        self.color_warning   =[255,   0,   0]
+        self.color_background = [   0,    0,    0,    1]
+        self.color_staves     = [   0,  1/8,    0,  1/2]
+        self.color_c_line     = [1/16, 1/16, 1/16,  1/2]
+        self.color_quarter    = [1/32, 1/32, 1/32,    1]
+        self.color_notes      = [   0,  1/2,  1/2,    1]
+        self.color_other      = [   0,  1/2,    0,    1]
+        self.color_cursor     = [ 1/2,    0,  1/2,  1/2]
+        self.color_visual     = [   1,    1,    1,  1/4]
+        self.color_selected   = [   1,    1,    1,    1]
+        self.color_warning    = [   1,    0,    0,    1]
+        self.color_text       = [   1,    1,    1,    1]
 
     def ticks_per_quarter(self): return midi.ticks_per_quarter(self.midi)
 
@@ -310,73 +361,85 @@ class Editor:
         if octave<=-1: return '{}vb'.format(1-7*octave)
         return '-'
 
-    def draw(self):
-        media.clear(color=self.color_background)
-        self.w_window=media.width()
-        self.h_window=media.height()
-        #quarters
-        tph=2*self.ticks_per_quarter()
-        for i in range(self.duration//tph+2):
-            media.fill(
-                xi=self.x_ticks((self.ticks//tph+i)*tph),
-                xf=self.x_ticks((self.ticks//tph+i)*tph+self.ticks_per_quarter()),
+    def draw(self, window):
+        import pyglet
+        pyglet.gl.glClearColor(*self.color_background)
+        window.clear()
+        self.w_window, self.h_window = window.get_size()
+        batch = Batch(pyglet, self.h_window)
+        # quarters
+        tph = 2 * self.ticks_per_quarter()
+        for i in range(self.duration // tph + 2):
+            batch.add_fill(
+                xi=self.x_ticks((self.ticks // tph + i) * tph),
+                xf=self.x_ticks((self.ticks // tph + i) * tph + self.ticks_per_quarter()),
                 yi=0,
                 yf=self.h_window,
                 color=self.color_quarter
             )
-        media.vertices_draw()
-        #staves
+        # staves
         h=int(self.h_note())
         for m in range(self.multistaffing):
             for i in self.staves_to_draw():
-                media.fill(xi=0, xf=self.w_window, y=self.y_note(i, 24*m), h=h, color=self.color_c_line)
+                batch.add_fill(
+                    xi=0,
+                    xf=self.w_window,
+                    yi=self.y_note(i, 24*m),
+                    h=h,
+                    color=self.color_c_line,
+                )
                 for j in [4, 7, 11, 14, 17]:
-                    media.fill(xi=0, xf=self.w_window, y=self.y_note(i, j+24*m), h=h, color=self.color_staves)
-        media.vertices_draw()
-        #octaves
-        octaves={}
+                    batch.add_fill(
+                        xi=0,
+                        xf=self.w_window,
+                        yi=self.y_note(i, j+24*m),
+                        h=h,
+                        color=self.color_staves,
+                    )
+        # octaves
+        octaves = {}
         for i in self.staves_to_draw():
-            octaves[i]=self.calculate_octave(i)
-            media.text(
+            octaves[i] = self.calculate_octave(i)
+            batch.add_text(
                 self.notate_octave(octaves[i]),
                 x=self.margin,
                 y=self.y_note(i, 24*self.multistaffing-5),
                 h=int(self.h_note()*2),
                 color=self.color_other,
             )
-        #notes
+        # notes
         for i in self.staves_to_draw():
             for j in self.midi[1+i]:
                 if not self.endures(j.ticks()): break
-                if j.type()=='note':
+                if j.type() == 'note':
                     kwargs={
                         'xi': self.x_ticks(j.ticks()),
-                        'xf': self.x_ticks(j.ticks()+j.duration()),
-                        'y' : self.y_note(i, j.number(), octaves[i]),
+                        'xf': self.x_ticks(j.ticks() + j.duration()),
+                        'yi': self.y_note(i, j.number(), octaves[i]),
                     }
-                    media.fill(
+                    batch.add_fill(
                         h=int(self.h_note()),
                         color=self.color_selected if self.is_selected(j) else self.color_notes,
-                        **kwargs
+                        **kwargs,
                     )
-                    if j.number()-12*octaves[i]>24*self.multistaffing-4: media.fill(
-                        h=int(self.h_note()//2),
-                        color=self.color_warning,
-                        **kwargs
-                    )
+                    if j.number() - 12 * octaves[i] > 24 * self.multistaffing - 4:
+                        batch.add_fill(
+                            h=int(self.h_note() // 2),
+                            color=self.color_warning,
+                            **kwargs,
+                        )
                 else: print(j)
-        media.vertices_draw()
-        #other events
+        # other events
         for i in self.midi[0]:
-            text=None
-            y=0
-            if i.type()=='tempo':
-                text='q={}'.format(int(us_per_minute/i.us_per_quarter()))
-                y=10
-            elif i.type()=='time_sig':
-                text='{}/{}'.format(i.top(), i.bottom())
-                y=20
-            elif i.type()=='key_sig':
+            text = None
+            y = 0
+            if i.type() == 'tempo':
+                text = 'q={}'.format(int(us_per_minute/i.us_per_quarter()))
+                y = 10
+            elif i.type() == 'time_sig':
+                text = '{}/{}'.format(i.top(), i.bottom())
+                y = 20
+            elif i.type() == 'key_sig':
                 def tonic(sharps, minor):
                     return [
                         'Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#'
@@ -386,30 +449,38 @@ class Editor:
                     '-' if i.minor() else '+'
                 )
                 y=30
-            elif i.type()=='ticks_per_quarter': pass
-            else: text=str(i)
-            if text: media.text(text, x=self.x_ticks(i.ticks()), y=y, h=10, color=self.color_other)
-        #cursor
-        media.fill(
+            elif i.type() == 'ticks_per_quarter': pass
+            else: text = str(i)
+            if text: batch.add_text(text, x=self.x_ticks(i.ticks()), y=y, h=10, color=self.color_other)
+        # cursor
+        batch.add_fill(
             xi=self.x_ticks(int(self.cursor.ticks)),
             xf=self.x_ticks(int(self.cursor.ticks+self.cursor.duration)),
-            y=self.y_note(self.cursor.staff, self.cursor.note, octaves[self.cursor.staff]),
+            yi=self.y_note(self.cursor.staff, self.cursor.note, octaves[self.cursor.staff]),
             h=int(self.h_note()),
             color=self.color_cursor,
         )
-        #visual
+        # visual
         if self.visual.active:
-            start, finish=self.get_visual_duration()
-            staff_i=min(self.visual.staff, self.cursor.staff)
-            staff_f=max(self.visual.staff, self.cursor.staff)
-            media.fill(
+            start, finish = self.get_visual_duration()
+            staff_i = min(self.visual.staff, self.cursor.staff)
+            staff_f = max(self.visual.staff, self.cursor.staff)
+            batch.add_fill(
                 xi=self.x_ticks(int(start)),
                 xf=self.x_ticks(int(finish)),
                 yi=self.y_note(staff_i, self.notes_per_staff()),
                 yf=self.y_note(staff_f, -1),
                 color=self.color_visual,
             )
-        #text
-        media.text(self.text, x=self.margin, y=self.h_window-self.margin, h=self.text_size, bottom=True)
+        # text
+        batch.draw(True)
+        batch.add_text(
+            self.text,
+            x=self.margin,
+            y=self.h_window-self.margin,
+            h=self.text_size,
+            color=self.color_text,
+            anchor_y='bottom',
+        )
         #
-        media.display()
+        batch.draw(False)
