@@ -19,7 +19,7 @@ class Cursor:
 		self.ticks=Fraction(note.ticks())
 		self.duration=Fraction(note.duration())
 
-class View:
+class Editor:
 	def __init__(self, margin=6, text_size=12):
 		self.midi=midi.empty_midi()
 		self.text=''

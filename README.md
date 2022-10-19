@@ -14,6 +14,10 @@ Dan's MIDI Editor has a few goals:
         - Editor is controlled by configured controls
         - Editor draws with pyglet
     - main should instantiate pyglet, controls, and Editor
+- mouse
+    - drag view
+    - mouse wheel zoom
+    - click select note
 
 - quantization
 - niceties

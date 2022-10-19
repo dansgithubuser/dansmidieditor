@@ -7,6 +7,7 @@ class Controls:
         self.channel = 'sequence'
         self.sequence = []
         self.text = []
+        self.udata = {}
         self.shift_table = {
             'a': 'A', 'b': 'B', 'c': 'C', 'd': 'D', 'e': 'E', 'f': 'F',
             'g': 'G', 'h': 'H', 'i': 'I', 'j': 'J', 'k': 'K', 'l': 'L',
