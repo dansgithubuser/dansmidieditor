@@ -1,9 +1,10 @@
-from controls import Controls
+from controls import Controls, Mode
 from editor import Editor
 
 import re
 import traceback
 
+"""
 configuration='''
 mode .*
 order -200
@@ -204,8 +205,64 @@ class Mode:
 		if   self.mode=='command': self.view.text=':'+self.sequence_as_text()
 		elif self.mode=='insert' : self.view.text='i'+''.join(self.sequence)
 		else                     : self.view.text=    ''.join(self.sequence)
+"""
+
+class EditorMode(Mode):
+    def __init__(self, editor):
+        self.editor = editor
+
+class NormalMode(EditorMode):
+    def enter(self, controls):
+        controls.clear()
+        controls.set_channel('sequence')
+
+    def handle_input(self, controls):
+        direction, key, modifiers = controls.sequence[-1]
+        if direction == '+':
+            if key == ':':
+                if 'shift' in modifiers:
+                    controls.set_mode('command')
+                    return
+        if direction == '-':
+            if key == 'escape':
+                controls.clear()
+        self.editor.text = controls.status()
+
+class CommandMode(EditorMode):
+    def enter(self, controls):
+        self.controls = controls
+        controls.clear()
+        controls.set_channel('text')
+        self.editor.text = ':'
+
+    def handle_input(self, controls):
+        direction, key, modifiers = controls.sequence[-1]
+        if direction == '+':
+            if key == 'escape':
+                controls.set_mode('normal')
+            elif key == 'enter':
+                if self.controls.status() == 'q':
+                    self.command_quit()
+            else:
+                self.editor.text = f':{controls.status()}'
+
+    # helpers
+    def check_unwritten(self):
+        if self.editor.unwritten:
+            self.message('unwritten changes, use q! to force quit')
+            return False
+        return True
+
+    # commands
+    def command_quit(self):
+        if self.check_unwritten():
+            self.controls.udata['done'] = True
 
 def configure(editor):
-    controls = Controls(Mode())
+    controls = Controls(
+        'normal',
+        normal=NormalMode(editor),
+        command=CommandMode(editor),
+    )
     controls.udata['done'] = False
     return controls

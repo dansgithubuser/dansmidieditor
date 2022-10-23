@@ -8,12 +8,6 @@ Dan's MIDI Editor has a few goals:
 
 ## todo
 - recover previous features
-    - need something like config, but don't use a made-up language
-        - control module & pyglet input translation layer
-    - View -> Editor
-        - Editor is controlled by configured controls ✅
-        - Editor draws with pyglet ✅
-    - main should instantiate pyglet, controls, and Editor ✅
 - mouse
     - drag view
     - mouse wheel zoom
