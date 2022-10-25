@@ -8,14 +8,13 @@ Dan's MIDI Editor has a few goals:
 
 ## todo
 - recover previous features
+    - render speed
+    - try to do necessary edits
+- handle all msgs
+- horizontal scale shouldn't change when ticks per quarter does
+- indicator that more notes are off-screen
+- quantization
 - mouse
     - drag view
     - mouse wheel zoom
     - click select note
-
-- quantization
-- niceties
-    - indicator that more notes are off-screen
-    - track 0 events
-    - other events
-    - horizontal scale shouldn't change when ticks per quarter does

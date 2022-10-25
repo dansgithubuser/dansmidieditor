@@ -10,6 +10,7 @@ class Controls:
         self.key = None
         self.direction = None
         self.modifiers = None
+        self.input = (None, None, None)
         self.channel = 'immediate'
         self.sequence = []
         self.text = []
@@ -31,10 +32,10 @@ class Controls:
                     if self.text: self.text.pop()
         self.mode.handle_input(self)
 
-    def handle_text(self, text):
+    def handle_text(self, text, direction='+', key='enter', modifiers=set()):
         assert self.channel == 'text'
         self.text += text
-        self.mode.handle_input(self)
+        self.handle_input(direction, key, modifiers)
 
     def status(self):
         if self.channel == 'immediate':

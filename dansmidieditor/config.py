@@ -266,8 +266,16 @@ class CommandMode(EditorMode):
             if key == 'escape':
                 controls.set_mode('normal')
             elif key == 'enter':
-                if controls.status() == 'q':
-                    self.command_quit()
+                command_code, *args = controls.status().split()
+                command = {
+                    'q': self.command_quit,
+                    'e': self.command_edit,
+                }.get(command_code)
+                if command:
+                    command(*args)
+                else:
+                    self.editor.text = f'no such command: {command_code}'
+                controls.set_mode('normal')
             else:
                 self.editor.text = f':{controls.status()}'
 
@@ -282,6 +290,10 @@ class CommandMode(EditorMode):
     def command_quit(self):
         if self.check_unwritten():
             self.controls.udata['done'] = True
+
+    def command_edit(self, path):
+        if self.check_unwritten():
+            self.editor.read(path)
 
 def configure(editor):
     controls = Controls(

@@ -9,13 +9,18 @@ from editor import Editor
 import pyglet
 
 #----- standard -----#
+import argparse
 import sys
 
 #===== init =====#
-editor = Editor()
+editor = Editor(pyglet)
 controls = configure(editor)
 
 #===== args =====#
+parser = argparse.ArgumentParser()
+parser.add_argument('command', nargs='+')
+args = parser.parse_args()
+
 for arg in sys.argv[1:]:
     controls.set_mode('command')
     controls.handle_text(arg)

@@ -32,7 +32,7 @@ class Cursor:
         return self.ticks + self.duration
 
     def coincide_note(self, note):
-        self.ticks = Fraction(note.ticks())
+        self.ticks = Fraction(note.ticks)
         self.duration = Fraction(note.duration())
 
 class Batch:
@@ -88,7 +88,7 @@ class Batch:
 class Editor:
     'We use track 0 for events that affect all staves, such as tempo. We ensure this track always exists.'
 
-    def __init__(self):
+    def __init__(self, pyglet):
         self.song = midi.Song()
         self.text = ''
         self.margin = 6
@@ -106,6 +106,7 @@ class Editor:
         self.unwritten = False
         self.banner_h = 40
         self.path = 'untitled.mid'
+        self.pyglet = pyglet
         #colors
         self.color_background = [   0,    0,    0,    1]
         self.color_staves     = [   0,  1/8,    0,  1/2]
@@ -137,7 +138,7 @@ class Editor:
     def cursor_down(self, amount=1):
         self.cursor.staff += amount
         self.cursor.staff = max(self.cursor.staff, 0)
-        self.cursor.staff = min(self.cursor.staff, len(self.song.tracks) - 2)
+        self.cursor.staff = min(self.cursor.staff, len(self.song) - 2)
         #move up if cursor is above window
         self.staff = min(self.staff, self.cursor.staff)
         #move down if cursor is below window
@@ -184,7 +185,7 @@ class Editor:
         octave = None
         for i in self.song[self.cursor.staff]:
             if i.type() != 'note': continue
-            if i.ticks() > self.ticks: break
+            if i.ticks > self.ticks: break
             octave = i.number() // 12
         if octave is None: octave = self.calculate_octave(self.cursor.staff)
         self.song.add_note(
@@ -197,7 +198,7 @@ class Editor:
         self.unwritten = True
 
     def prev_note(self):
-        return self.song.prev(self.cursor.staff + 1, int(self.cursor.ticks), ['note_on'])
+        return self.song.prev(self.cursor.staff + 1, int(self.cursor.ticks), predicate=Msg.is_note_start)
 
     def remove_note(self, ref):
         if ref == None: return
@@ -222,7 +223,7 @@ class Editor:
     #other midi events
     def add_tempo(self, quarters_per_minute):
         us_per_quarter = us_per_minute/quarters_per_minute
-        self.song.tracks[0].add(
+        self.song[0].add(
             midi.Msg.tempo(int(us_per_quarter)),
             int(self.cursor.ticks),
         )
@@ -320,7 +321,7 @@ class Editor:
 
     def info(self):
         for i in sorted(self.selected, key=lambda x: (x.track, x.index)):
-            print(self.song.tracks[i.track][i.index])
+            print(self.song[i.track][i.index])
 
     #drawing
     def staves_to_draw(self):
@@ -328,7 +329,7 @@ class Editor:
             self.staff,
             self.staff + min(
                 int(self.staves) + 1,
-                len(self.song.tracks) - 1 - self.staff,
+                len(self.song) - 1 - self.staff,
             ),
         )
 
@@ -355,12 +356,12 @@ class Editor:
         octave = 5
         lo = 60
         hi = 60
-        for i in self.song.tracks[1 + staff]:
-            if i.type() != 'note_on': continue
+        for i in self.song[1 + staff]:
+            if not i.is_note_start(): continue
             if i.note_end().ticks < self.ticks: continue
-            if not self.endures(i.ticks()): break
-            lo = min(lo, i.number())
-            hi = max(hi, i.number())
+            if not self.endures(i.ticks): break
+            lo = min(lo, i.note())
+            hi = max(hi, i.note())
         top = (octave + 2) * 12
         if hi > top: octave += (hi - top + 11) // 12
         bottom = octave * 12
@@ -374,7 +375,7 @@ class Editor:
         return '-'
 
     def draw(self, window):
-        import pyglet
+        pyglet = self.pyglet
         pyglet.gl.glClearColor(*self.color_background)
         window.clear()
         self.w_window, self.h_window = window.get_size()
@@ -421,45 +422,45 @@ class Editor:
             )
         # notes
         for i in self.staves_to_draw():
-            for j in self.song.tracks[1+i]:
-                if not self.endures(j.ticks()): break
-                if j.type() == 'note':
+            for j in self.song[1+i]:
+                if not self.endures(j.ticks): break
+                if j.is_note_start():
                     kwargs={
-                        'xi': self.x_ticks(j.ticks()),
-                        'xf': self.x_ticks(j.ticks() + j.duration()),
-                        'yi': self.y_note(i, j.number(), octaves[i]),
+                        'xi': self.x_ticks(j.ticks),
+                        'xf': self.x_ticks(j.ticks + j.duration()),
+                        'yi': self.y_note(i, j.note(), octaves[i]),
                     }
                     batch.add_fill(
                         h=int(self.h_note()),
                         color=self.color_selected if self.is_selected(j) else self.color_notes,
                         **kwargs,
                     )
-                    if j.number() - 12 * octaves[i] > 24 * self.multistaffing - 4:
+                    if j.note() - 12 * octaves[i] > 24 * self.multistaffing - 4:
                         batch.add_fill(
                             h=int(self.h_note() // 2),
                             color=self.color_warning,
                             **kwargs,
                         )
-                else: print(j)
+                else:
+                    pass  # todo
         # other events
-        for i in self.song.tracks[0]:
+        for i in self.song[0]:
             text = None
             y = 0
             if i.type() == 'tempo':
-                text = f'q={us_per_minute // i.us_per_quarter()}'
+                text = f'q={us_per_minute // i.tempo_us_per_quarter()}'
                 y = 10
-            elif i.type() == 'time_sig':
-                text = f'{i.top()}/{i.bottom()}'
+            elif i.type() == 'time_signature':
+                text = f'{i.msg().top()}/{i.msg().bottom()}'
                 y = 20
-            elif i.type() == 'key_sig':
+            elif i.type() == 'key_signature':
                 text = '{}{}'.format(
                     tonics[7 + i.sharps() + (3 if i.minor() else 0)],
                     '-' if i.minor() else '+'
                 )
                 y = 30
-            elif i.type() == 'ticks_per_quarter': pass
             else: text = str(i)
-            if text: batch.add_text(text, x=self.x_ticks(i.ticks()), y=y, h=10, color=self.color_other)
+            if text: batch.add_text(text, x=self.x_ticks(i.ticks), y=y, h=10, color=self.color_other)
         # cursor
         batch.add_fill(
             xi=self.x_ticks(int(self.cursor.ticks)),
