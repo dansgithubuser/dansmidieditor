@@ -193,7 +193,7 @@ def on_key_press(symbol, modifiers):
     if key := symbol_to_key(symbol):
         if modifiers & pyglet.window.key.MOD_SHIFT and 'a' <= key <= 'z':
             key = key.upper()
-        controls.handle_input(key, '+', translate_modifiers(modifiers))
+        controls.handle_input('+', key, translate_modifiers(modifiers))
         if controls.udata['done']:
             window.close()
     return pyglet.event.EVENT_HANDLED
@@ -201,7 +201,7 @@ def on_key_press(symbol, modifiers):
 @window.event
 def on_key_release(symbol, modifiers):
     if key := symbol_to_key(symbol):
-        controls.handle_input(key, '-', translate_modifiers(modifiers))
+        controls.handle_input('-', key, translate_modifiers(modifiers))
         if controls.udata['done']:
             window.close()
     return pyglet.event.EVENT_HANDLED

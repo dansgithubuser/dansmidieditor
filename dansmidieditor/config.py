@@ -213,20 +213,49 @@ class EditorMode(Mode):
 
 class NormalMode(EditorMode):
     def enter(self, controls):
+        self.controls = controls
         controls.clear()
-        controls.set_channel('sequence')
+        controls.set_channel('immediate')
+        self.reps = None
 
     def handle_input(self, controls):
-        direction, key, modifiers = controls.sequence[-1]
+        direction, key, modifiers = controls.input
         if direction == '+':
-            if key == ':':
-                if 'shift' in modifiers:
-                    controls.set_mode('command')
-                    return
-        if direction == '-':
-            if key == 'escape':
-                controls.clear()
-        self.editor.text = controls.status()
+            if '0' <= key <= '9':
+                if not self.reps: self.reps = 0
+                self.reps = self.reps * 10 + int(key)
+            else:
+                action = {
+                    'h': lambda: self.editor.cursor_left(self.take_reps()),
+                    'j': lambda: self.editor.cursor_down(self.take_reps()),
+                    'k': lambda: self.editor.cursor_up(self.take_reps()),
+                    'l': lambda: self.editor.cursor_right(self.take_reps()),
+                    'J': lambda: self.editor.cursor_note_down(self.take_reps()),
+                    'K': lambda: self.editor.cursor_note_up(self.take_reps()),
+                    ':': lambda: controls.set_mode('command'),
+                    'escape': lambda: self.take_reps(),
+                    'backspace': lambda: self.remove_reps_digit(),
+                }.get(key)
+                if action: action()
+        if not isinstance(controls.mode, NormalMode): return
+        text_segments = []
+        if self.reps:
+            text_segments.append(str(self.reps))
+        text_segments.append(controls.status())
+        self.editor.text = ' '.join(text_segments)
+
+    def take_reps(self):
+        if self.reps:
+            r = self.reps
+            self.reps = None
+            return r
+        else:
+            return 1
+
+    def remove_reps_digit(self):
+        if not self.reps: return
+        self.reps //= 10
+        if self.reps == 0: self.reps = None
 
 class CommandMode(EditorMode):
     def enter(self, controls):
@@ -236,12 +265,12 @@ class CommandMode(EditorMode):
         self.editor.text = ':'
 
     def handle_input(self, controls):
-        direction, key, modifiers = controls.sequence[-1]
+        direction, key, modifiers = controls.input
         if direction == '+':
             if key == 'escape':
                 controls.set_mode('normal')
             elif key == 'enter':
-                if self.controls.status() == 'q':
+                if controls.status() == 'q':
                     self.command_quit()
             else:
                 self.editor.text = f':{controls.status()}'
