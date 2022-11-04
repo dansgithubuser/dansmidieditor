@@ -28,6 +28,9 @@ class Cursor:
         self.duration = Fraction(ticks_per_quarter)
         self.duty = Fraction(1)
 
+    def end(self):
+        return self.ticks + self.duration
+
     def coincide_note(self, note):
         self.ticks = Fraction(note.ticks())
         self.duration = Fraction(note.duration())
@@ -83,8 +86,10 @@ class Batch:
         self.list.clear()
 
 class Editor:
+    'We use track 0 for events that affect all staves, such as tempo. We ensure this track always exists.'
+
     def __init__(self):
-        self.midi = midi.empty_midi()
+        self.song = midi.Song()
         self.text = ''
         self.margin = 6
         self.text_size = 12
@@ -93,7 +98,7 @@ class Editor:
         self.multistaffing = 1
         self.ticks = 0
         self.duration = 5760
-        self.cursor = Cursor(self.ticks_per_quarter())
+        self.cursor = Cursor(self.song.ticks_per_quarter)
         self.deselect()
         self.unyank()
         self.visual = Cursor(0)
@@ -114,27 +119,25 @@ class Editor:
         self.color_warning    = [   1,    0,    0,    1]
         self.color_text       = [   1,    1,    1,    1]
 
-    def ticks_per_quarter(self): return midi.ticks_per_quarter(self.midi)
-
     #persistence
     def read(self, path, remember=True):
-        self.midi = midi.read(path)
-        if len(self.midi) == 1: self.midi.append([])
-        self.cursor.duration = Fraction(self.ticks_per_quarter())
+        self.song.load(path)
+        if not self.song.tracks: self.song.tracks.append(midi.Track())
+        self.cursor.duration = Fraction(self.song.ticks_per_quarter)
         self.cursor_down(0)
         self.unwritten = False
         if remember: self.path = path
 
     def write(self, path=None):
         if not path: path = self.path
-        midi.write(path, self.midi)
+        self.song.save(path)
         self.unwritten = False
 
     #cursor
     def cursor_down(self, amount=1):
         self.cursor.staff += amount
         self.cursor.staff = max(self.cursor.staff, 0)
-        self.cursor.staff = min(self.cursor.staff, len(self.midi) - 2)
+        self.cursor.staff = min(self.cursor.staff, len(self.song.tracks) - 2)
         #move up if cursor is above window
         self.staff = min(self.staff, self.cursor.staff)
         #move down if cursor is below window
@@ -166,7 +169,7 @@ class Editor:
     def cursor_note_up(self, amount=1): self.cursor_note_down(-amount)
 
     def set_duration(self, fraction_of_quarter):
-        self.cursor.duration = Fraction(self.ticks_per_quarter()) * fraction_of_quarter
+        self.cursor.duration = Fraction(self.song.ticks_per_quarter) * fraction_of_quarter
 
     #window
     def more_multistaffing(self, amount=1):
@@ -179,101 +182,90 @@ class Editor:
     #notes
     def add_note(self, number, advance=True):
         octave = None
-        for i in self.midi[1 + self.cursor.staff]:
+        for i in self.song[self.cursor.staff]:
             if i.type() != 'note': continue
             if i.ticks() > self.ticks: break
             octave = i.number() // 12
         if octave is None: octave = self.calculate_octave(self.cursor.staff)
-        midi.add_note(
-            self.midi,
+        self.song.add_note(
             self.cursor.staff + 1,
             int(self.cursor.ticks),
             int(self.cursor.duration*self.cursor.duty),
-            number + 12 * octave
+            number + 12 * octave,
         )
         if advance: self.cursor_right()
         self.unwritten = True
 
-    def previous_note(self):
-        return midi.previous_note(self.midi, self.cursor.staff + 1, int(self.cursor.ticks))
+    def prev_note(self):
+        return self.song.prev(self.cursor.staff + 1, int(self.cursor.ticks), ['note_on'])
 
-    def remove_note(self, note):
-        if note == None: return
-        return midi.remove_note(note)
+    def remove_note(self, ref):
+        if ref == None: return
+        return ref.remove()
 
-    def transpose_notes(self, notes, amount):
-        for note in notes:
-            if note == None: continue
-            midi.transpose_note(note, amount)
+    def transpose_notes(self, refs, semitones):
+        for ref in refs:
+            ref().transpose(semitones)
 
-    def harmonize(self, notes, amount):
-        events = []
-        for note in notes:
-            if note == None: continue
-            events.append(self.midi[note.track][note.index])
-            events[-1].track = note.track
-        for i in events:
-            midi.add_note(
-                self.midi,
-                i.track,
-                i.ticks(),
-                i.duration(),
-                i.number() + amount,
-                i.channel(),
+    def harmonize_notes(self, refs, semitones):
+        for ref in refs: ref.denorm()
+        for ref in refs:
+            self.song.add_note(
+                ref.track,
+                ref().ticks,
+                ref().duration(),
+                ref().number() + semitones,
+                ref().channel(),
             )
-
-    def quantize(self, divisor):
-        midi.quantize(self.midi, divisor)
-        self.unwritten = True
+        for ref in refs: ref.renorm()
 
     #other midi events
     def add_tempo(self, quarters_per_minute):
         us_per_quarter = us_per_minute/quarters_per_minute
-        midi.add_event(
-            self.midi[0],
-            midi.Event.make('tempo', int(self.cursor.ticks), int(us_per_quarter)),
+        self.song.tracks[0].add(
+            midi.Msg.tempo(int(us_per_quarter)),
+            int(self.cursor.ticks),
         )
 
     #selection
     def select(self):
         if self.visual.active: self.toggle_visual(); return
-        args = [
-            self.midi,
-            self.cursor.staff + 1,
-            self.cursor.ticks,
-            self.cursor.duration,
-        ]
-        notes = midi.notes_in(*args, number=self.cursor.note)
-        if not notes: notes = midi.notes_in(*args, number=self.cursor.note, generous=True)
-        if not notes: notes = midi.notes_in(*args)
-        if not notes: notes = midi.notes_in(*args, generous=True)
+        kwargs = {
+            'track_i': self.cursor.staff + 1,
+            'track_f': self.cursor.staff + 1,
+            'ticks_i': self.cursor.ticks,
+            'ticks_f': self.cursor.end(),
+        }
+        notes = self.song.select(**kwargs, note_i=self.cursor.note, types=['note_on'])
+        if not notes: notes = self.song.select(**kwargs, types=['note_on'])
         for i in notes: self.selected.add(i)
 
     def deselect(self): self.selected = set()
 
     def is_selected(self, note):
-        return any([self.midi[i.track][i.index] == note for i in self.selected])
+        for i in self.selected:
+            if i() is note: return True
+        return False
 
     def delete(self):
         self.yank()
-        midi.delete(self.midi, self.selected)
+        for i in self.selected: i.remove()
         self.selected = set()
         self.unwritten = True
 
-    def transpose(self, amount):
-        midi.transpose(self.midi, self.selected, amount)
+    def transpose(self, semitones):
+        for i in self.selected:
+            i().transpose(semitones)
         self.unwritten = True
 
-    def translate(self, amount):
-        midi.translate(self.midi, self.selected, int(self.cursor.duration * amount))
-        self.unwritte = True
-
-    def durate(self, amount):
-        midi.durate(self.midi, self.selected, int(self.cursor.duration * amount))
+    def durate(self, cursor_durations):
+        for i in self.selected:
+            i().durate(int(self.cursor.duration * cursor_durations))
         self.unwritten = True
 
-    def set_velocity_on(self, velocity):
-        midi.set_velocity_on(self.midi, self.selected, velocity)
+    def set_vel(self, vel):
+        for i in self.selected:
+            i().set_vel(vel)
         self.unwritten = True
 
     def get_visual_duration(self):
@@ -286,12 +278,11 @@ class Editor:
     def toggle_visual(self):
         if self.visual.active:
             start, finish = self.get_visual_duration()
-            notes = midi.notes_in(
-                self.midi,
-                track = min(self.visual.staff, self.cursor.staff) + 1,
-                ticks = start,
-                duration = finish - start,
-                track_end = max(self.visual.staff, self.cursor.staff) + 1,
+            notes = self.song.select(
+                track_i=min(self.visual.staff, self.cursor.staff) + 1,
+                track_f=max(self.visual.staff, self.cursor.staff) + 1,
+                ticks_i=start,
+                ticks_f=finish,
             )
             for i in notes: self.selected.add(i)
             self.visual.duration = finish - start
@@ -307,31 +298,29 @@ class Editor:
 
     def yank(self):
         if self.visual.active: self.toggle_visual()
-        self.yanked = [
-            {'track': i.track, 'event': self.midi[i.track][i.index]}
-            for i in self.selected
-        ]
+        self.yanked = [copy.deepcopy(i.denorm()) for i in self.selected]
 
     def unyank(self): self.yanked = []
 
     def put(self):
         if not self.yanked: return
-        start = min([i['event'].ticks() for i in self.yanked])
-        staff_i = min([i['track'] for i in self.yanked])
+        ticks_i = min([i().ticks for i in self.yanked])
+        track_i = min([i.track for i in self.yanked])
         for i in self.yanked:
-            midi.add_note(
-                self.midi,
-                self.cursor.staff + 1 + i['track'] - staff_i,
-                int(self.cursor.ticks - start + i['event'].ticks()),
-                i['event'].duration(),
-                i['event'].number(),
-                i['event'].channel(),
+            self.song.add_note(
+                self.cursor.staff + 1 + i.track - track_i,
+                int(self.cursor.ticks - ticks_i + i().ticks),
+                i().duration(),
+                i().note(),
+                i().channel(),
+                i().vel(),
+                i().vel_off(),
             )
         self.cursor.ticks += self.visual.duration
 
     def info(self):
         for i in sorted(self.selected, key=lambda x: (x.track, x.index)):
-            print(self.midi[i.track][i.index])
+            print(self.song.tracks[i.track][i.index])
 
     #drawing
     def staves_to_draw(self):
@@ -339,7 +328,7 @@ class Editor:
             self.staff,
             self.staff + min(
                 int(self.staves) + 1,
-                len(self.midi) - 1 - self.staff,
+                len(self.song.tracks) - 1 - self.staff,
             ),
         )
 
@@ -366,9 +355,9 @@ class Editor:
         octave = 5
         lo = 60
         hi = 60
-        for i in self.midi[1 + staff]:
-            if i.type() != 'note': continue
-            if i.ticks() + i.duration() < self.ticks: continue
+        for i in self.song.tracks[1 + staff]:
+            if i.type() != 'note_on': continue
+            if i.note_end().ticks < self.ticks: continue
             if not self.endures(i.ticks()): break
             lo = min(lo, i.number())
             hi = max(hi, i.number())
@@ -391,11 +380,11 @@ class Editor:
         self.w_window, self.h_window = window.get_size()
         batch = Batch(pyglet, self.h_window)
         # quarters
-        tph = 2 * self.ticks_per_quarter()
+        tph = 2 * self.song.ticks_per_quarter
         for i in range(self.duration // tph + 2):
             batch.add_fill(
                 xi=self.x_ticks((self.ticks // tph + i) * tph),
-                xf=self.x_ticks((self.ticks // tph + i) * tph + self.ticks_per_quarter()),
+                xf=self.x_ticks((self.ticks // tph + i) * tph + self.song.ticks_per_quarter),
                 yi=0,
                 yf=self.h_window,
                 color=self.color_quarter
@@ -432,7 +421,7 @@ class Editor:
             )
         # notes
         for i in self.staves_to_draw():
-            for j in self.midi[1+i]:
+            for j in self.song.tracks[1+i]:
                 if not self.endures(j.ticks()): break
                 if j.type() == 'note':
                     kwargs={
@@ -453,7 +442,7 @@ class Editor:
                         )
                 else: print(j)
         # other events
-        for i in self.midi[0]:
+        for i in self.song.tracks[0]:
             text = None
             y = 0
             if i.type() == 'tempo':

@@ -51,10 +51,6 @@ order 0
 .* >h:                self.view.cursor_left       (self.reps());                   self.clear()
  <i >i$:              self.mode='insert';                                          self.clear()
  <Return >Return:     self.view.select();                                          self.clear()
-.* >Down:             self.view.transpose         (-self.reps());                  self.clear()
-.* >Up:               self.view.transpose         ( self.reps());                  self.clear()
-.* >Left:             self.view.translate         (-self.reps());                  self.clear()
-.* >Right:            self.view.translate         ( self.reps());                  self.clear()
  <Delete >Delete:     self.view.delete();                                          self.clear()
 .* >s:                self.view.more_multistaffing(self.reps());                   self.clear()
 .* >x:                self.view.less_multistaffing(self.reps());                   self.clear()
@@ -118,9 +114,9 @@ class Mode:
 			'e': 'edit',
 			'w': 'write',
 			'h': 'help',
-			'von': 'velocity_on',
-			'velocity_down': 'velocity_on',
-			'vd': 'velocity_on',
+			'von': 'vel_on',
+			'vel_down': 'vel_on',
+			'vd': 'vel_on',
 		}
 		self.messaging=False
 
@@ -196,8 +192,8 @@ class Mode:
 	def command_quantize(self, divisor=None):
 		if divisor is None: divisor=self.view.ticks_per_quarter()/self.view.cursor.duration
 		self.view.quantize(int(divisor))
-	def command_velocity_on(self, velocity):
-		self.view.set_velocity_on(int(velocity))
+	def command_vel_on(self, vel):
+		self.view.set_vel(int(vel))
 
 	#callback
 	def on_input(self):
