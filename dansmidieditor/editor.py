@@ -349,9 +349,6 @@ class Editor:
     def x_ticks(self, ticks):
         return (ticks - self.ticks) * self.w_window // self.duration
 
-    def endures(self, ticks):
-        return ticks < self.ticks + self.duration
-
     def calculate_octave(self, staff):
         octave = 5
         lo = 60
@@ -359,7 +356,7 @@ class Editor:
         for i in self.song[1 + staff]:
             if not i.is_note_start(): continue
             if i.note_end().ticks < self.ticks: continue
-            if not self.endures(i.ticks): break
+            if i.ticks >= self.ticks + self.duration: break
             lo = min(lo, i.note())
             hi = max(hi, i.note())
         top = (octave + 2) * 12
@@ -421,21 +418,23 @@ class Editor:
                 color=self.color_other,
             )
         # notes
-        for i in self.staves_to_draw():
-            for j in self.song[1+i]:
-                if not self.endures(j.ticks): break
-                if j.is_note_start():
+        for staff in self.staves_to_draw():
+            track = self.song[1+staff]
+            for deltamsg in track:
+                if deltamsg.ticks >= self.ticks + self.duration: break
+                if deltamsg.is_note_start():
+                    if deltamsg.note_end().ticks < self.ticks: continue
                     kwargs={
-                        'xi': self.x_ticks(j.ticks),
-                        'xf': self.x_ticks(j.ticks + j.duration()),
-                        'yi': self.y_note(i, j.note(), octaves[i]),
+                        'xi': self.x_ticks(deltamsg.ticks),
+                        'xf': self.x_ticks(deltamsg.ticks + deltamsg.duration()),
+                        'yi': self.y_note(staff, deltamsg.note(), octaves[staff]),
                     }
                     batch.add_fill(
                         h=int(self.h_note()),
-                        color=self.color_selected if self.is_selected(j) else self.color_notes,
+                        color=self.color_selected if self.is_selected(deltamsg) else self.color_notes,
                         **kwargs,
                     )
-                    if j.note() - 12 * octaves[i] > 24 * self.multistaffing - 4:
+                    if deltamsg.note() - 12 * octaves[staff] > 24 * self.multistaffing - 4:
                         batch.add_fill(
                             h=int(self.h_note() // 2),
                             color=self.color_warning,
@@ -444,23 +443,25 @@ class Editor:
                 else:
                     pass  # todo
         # other events
-        for i in self.song[0]:
+        for deltamsg in self.song[0]:
+            if deltamsg.ticks < self.ticks: continue
+            if deltamsg.ticks >= self.ticks + self.duration: break
             text = None
             y = 0
-            if i.type() == 'tempo':
-                text = f'q={us_per_minute // i.tempo_us_per_quarter()}'
+            if deltamsg.type() == 'tempo':
+                text = f'q={us_per_minute // deltamsg.tempo_us_per_quarter()}'
                 y = 10
-            elif i.type() == 'time_signature':
-                text = f'{i.msg().top()}/{i.msg().bottom()}'
+            elif deltamsg.type() == 'time_signature':
+                text = f'{deltamsg.time_sig_top()}/{deltamsg.time_sig_bottom()}'
                 y = 20
-            elif i.type() == 'key_signature':
+            elif deltamsg.type() == 'key_signature':
                 text = '{}{}'.format(
-                    tonics[7 + i.sharps() + (3 if i.minor() else 0)],
-                    '-' if i.minor() else '+'
+                    tonics[7 + deltamsg.key_sig_sharps() + (3 if deltamsg.key_sig_minor() else 0)],
+                    '-' if deltamsg.key_sig_minor() else '+'
                 )
                 y = 30
-            else: text = str(i)
-            if text: batch.add_text(text, x=self.x_ticks(i.ticks), y=y, h=10, color=self.color_other)
+            else: text = str(deltamsg)
+            if text: batch.add_text(text, x=self.x_ticks(deltamsg.ticks), y=y, h=10, color=self.color_other)
         # cursor
         batch.add_fill(
             xi=self.x_ticks(int(self.cursor.ticks)),
