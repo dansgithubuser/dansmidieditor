@@ -8,6 +8,7 @@ Dan's MIDI Editor has a few goals:
 
 ## todo
 - recover previous features
+    - CPU usage??
     - try to do necessary edits
 - handle all msgs
 - horizontal scale shouldn't change when ticks per quarter does

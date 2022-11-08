@@ -61,7 +61,7 @@ class Batch:
         rectangle.opacity = int(color[3] * 255)
         self.list.append(rectangle)
 
-    def add_text(self, s, x, y, h, color, anchor_x='left', anchor_y='top'):
+    def add_text(self, s, x, y, h, color, anchor_x='left', anchor_y='baseline'):
         y = self.h_window - y
         label = self.pyglet.text.Label(
             s,
@@ -69,7 +69,7 @@ class Batch:
             font_size=h,
             x=x,
             y=y,
-            anchor_x='left',
+            anchor_x=anchor_x,
             anchor_y=anchor_y,
             color=tuple(int(255*i) for i in color),
             batch=self.batch,
@@ -86,13 +86,11 @@ class Batch:
         self.list.clear()
 
 class Editor:
-    'We use track 0 for events that affect all staves, such as tempo. We ensure this track always exists.'
+    'We use track 0 for messages that affect all staves, such as tempo. We ensure this track always exists.'
 
     def __init__(self, pyglet):
         self.song = midi.Song()
         self.text = ''
-        self.margin = 6
-        self.text_size = 12
         self.staff = 0
         self.staves = 4.0
         self.multistaffing = 1
@@ -104,23 +102,28 @@ class Editor:
         self.visual = Cursor(0)
         self.visual.active = False
         self.unwritten = False
-        self.banner_h = 40
         self.path = 'untitled.mid'
         self.pyglet = pyglet
-        #colors
+        # layout
+        self.margin = 6  # distance stuff should be from edge of screen, if it shouldn't touch
+        self.text_size = 10
+        self.banner_h = self.margin + self.text_size * 4  # space at top for track 0 messages
+        self.footer_h = self.margin + self.text_size * 2  # space at bottom for text
+        # colors
         self.color_background = [   0,    0,    0,    1]
-        self.color_staves     = [   0,  1/8,    0,  1/2]
-        self.color_c_line     = [1/16, 1/16, 1/16,  1/2]
-        self.color_quarter    = [1/32, 1/32, 1/32,    1]
+        self.color_staves     = [   0,  1/4,    0,  1/2]
+        self.color_c_line     = [ 1/4,  1/4,  1/4,  1/2]
+        self.color_quarter    = [1/16, 1/16, 1/16,    1]
         self.color_notes      = [   0,  1/2,  1/2,    1]
-        self.color_other      = [   0,  1/2,    0,    1]
+        self.color_octaves    = [ 3/4,  3/4,  3/4,    1]
+        self.color_other      = [   0,    1,    0,    1]
         self.color_cursor     = [ 1/2,    0,  1/2,  1/2]
         self.color_visual     = [   1,    1,    1,  1/4]
         self.color_selected   = [   1,    1,    1,    1]
         self.color_warning    = [   1,    0,    0,    1]
         self.color_text       = [   1,    1,    1,    1]
 
-    #persistence
+    # persistence
     def read(self, path, remember=True):
         self.song.load(path)
         if not self.song.tracks: self.song.tracks.append(midi.Track())
@@ -134,17 +137,17 @@ class Editor:
         self.song.save(path)
         self.unwritten = False
 
-    #cursor
+    # cursor
     def cursor_down(self, amount=1):
         self.cursor.staff += amount
         self.cursor.staff = max(self.cursor.staff, 0)
         self.cursor.staff = min(self.cursor.staff, len(self.song) - 2)
-        #move up if cursor is above window
+        # move up if cursor is above window
         self.staff = min(self.staff, self.cursor.staff)
-        #move down if cursor is below window
+        # move down if cursor is below window
         bottom = self.staff + int(self.staves) - 1
         if self.cursor.staff > bottom: self.staff += self.cursor.staff - bottom
-        #figure cursor octave
+        # figure cursor octave
         self.cursor.note %= 12
         self.cursor.note += self.calculate_octave(self.cursor.staff) * 12
 
@@ -153,9 +156,9 @@ class Editor:
     def cursor_right(self, amount=1):
         self.cursor.ticks += self.cursor.duration*amount
         self.cursor.ticks = max(Fraction(0), self.cursor.ticks)
-        #move left if cursor is left of window
+        # move left if cursor is left of window
         self.ticks = min(self.ticks, int(self.cursor.ticks))
-        #move right if cursor is right of window
+        # move right if cursor is right of window
         right = self.ticks + self.duration
         cursor_right = self.cursor.ticks + self.cursor.duration
         if cursor_right > right: self.ticks += int(cursor_right) - right
@@ -172,7 +175,7 @@ class Editor:
     def set_duration(self, fraction_of_quarter):
         self.cursor.duration = Fraction(self.song.ticks_per_quarter) * fraction_of_quarter
 
-    #window
+    # window
     def more_multistaffing(self, amount=1):
         self.multistaffing += amount
         self.multistaffing = max(1, self.multistaffing)
@@ -180,7 +183,7 @@ class Editor:
 
     def less_multistaffing(self, amount=1): self.more_multistaffing(-amount)
 
-    #notes
+    # notes
     def add_note(self, number, advance=True):
         octave = None
         for i in self.song[self.cursor.staff]:
@@ -220,7 +223,7 @@ class Editor:
             )
         for ref in refs: ref.renorm()
 
-    #other midi events
+    # other midi events
     def add_tempo(self, quarters_per_minute):
         us_per_quarter = us_per_minute/quarters_per_minute
         self.song[0].add(
@@ -228,7 +231,7 @@ class Editor:
             int(self.cursor.ticks),
         )
 
-    #selection
+    # selection
     def select(self):
         if self.visual.active: self.toggle_visual(); return
         kwargs = {
@@ -323,7 +326,7 @@ class Editor:
         for i in sorted(self.selected, key=lambda x: (x.track, x.index)):
             print(self.song[i.track][i.index])
 
-    #drawing
+    # drawing
     def staves_to_draw(self):
         return range(
             self.staff,
@@ -337,7 +340,7 @@ class Editor:
         return 24 * self.multistaffing
 
     def h_staves(self):
-        return self.h_window - self.banner_h
+        return self.h_window - self.banner_h - self.footer_h
 
     def h_note(self):
         return self.h_staves() // self.staves // self.notes_per_staff()
@@ -369,7 +372,7 @@ class Editor:
         octave -= 5
         if octave >=  1: return '{}va'.format(1 + 7 * octave)
         if octave <= -1: return '{}vb'.format(1 - 7 * octave)
-        return '-'
+        return '.'
 
     def draw(self, window):
         pyglet = self.pyglet
@@ -408,16 +411,16 @@ class Editor:
                     )
         # octaves
         octaves = {}
-        for i in self.staves_to_draw():
-            octaves[i] = self.calculate_octave(i)
+        for staff in self.staves_to_draw():
+            octaves[staff] = self.calculate_octave(staff)
             batch.add_text(
-                self.notate_octave(octaves[i]),
+                self.notate_octave(octaves[staff]),
                 x=self.margin,
-                y=self.y_note(i, 24 * self.multistaffing - 5),
-                h=int(self.h_note() * 2),
-                color=self.color_other,
+                y=self.y_note(staff, 0) + self.h_note() / 2,
+                h=self.text_size,
+                color=self.color_octaves,
             )
-        # notes
+        # tracks 1+
         for staff in self.staves_to_draw():
             track = self.song[1+staff]
             for deltamsg in track:
@@ -442,26 +445,38 @@ class Editor:
                         )
                 else:
                     pass  # todo
-        # other events
+        # track 0
+        ticks = None
+        line = 0
         for deltamsg in self.song[0]:
             if deltamsg.ticks < self.ticks: continue
             if deltamsg.ticks >= self.ticks + self.duration: break
             text = None
-            y = 0
             if deltamsg.type() == 'tempo':
                 text = f'q={us_per_minute // deltamsg.tempo_us_per_quarter()}'
-                y = 10
-            elif deltamsg.type() == 'time_signature':
+            elif deltamsg.type() == 'time_sig':
                 text = f'{deltamsg.time_sig_top()}/{deltamsg.time_sig_bottom()}'
-                y = 20
-            elif deltamsg.type() == 'key_signature':
+            elif deltamsg.type() == 'key_sig':
                 text = '{}{}'.format(
                     tonics[7 + deltamsg.key_sig_sharps() + (3 if deltamsg.key_sig_minor() else 0)],
                     '-' if deltamsg.key_sig_minor() else '+'
                 )
-                y = 30
-            else: text = str(deltamsg)
-            if text: batch.add_text(text, x=self.x_ticks(deltamsg.ticks), y=y, h=10, color=self.color_other)
+            else:
+                text = deltamsg.msg_str()
+            if text:
+                if ticks == None or deltamsg.ticks - ticks >= self.song.ticks_per_quarter:
+                    line = 0
+                else:
+                    line += 1
+                ticks = deltamsg.ticks
+                batch.add_text(
+                    text,
+                    x=self.x_ticks(deltamsg.ticks),
+                    y=self.margin + self.text_size * line,
+                    anchor_y='top',
+                    h=self.text_size,
+                    color=self.color_other,
+                )
         # cursor
         batch.add_fill(
             xi=self.x_ticks(int(self.cursor.ticks)),
@@ -488,9 +503,18 @@ class Editor:
             self.text,
             x=self.margin,
             y=self.h_window - self.margin,
+            anchor_y='bottom',
             h=self.text_size,
             color=self.color_text,
+        )
+        batch.add_text(
+            f'{float(self.cursor.ticks / self.song.ticks_per_quarter):.2f}',
+            x=self.w_window - self.margin,
+            anchor_x = 'right',
+            y=self.h_window - self.margin,
             anchor_y='bottom',
+            h=self.text_size,
+            color=self.color_text,
         )
         #
         batch.draw(False)
