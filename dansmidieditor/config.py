@@ -213,9 +213,14 @@ class NormalMode(EditorMode):
         controls.clear()
         controls.set_channel('immediate')
         self.reps = None
+        self.first_input = True
 
     def handle_input(self, controls):
         direction, key, modifiers = controls.input
+        if self.first_input:
+            self.first_input = False
+            if direction == '-':
+                return
         if direction == '+':
             if '0' <= key <= '9':
                 if not self.reps: self.reps = 0
@@ -263,6 +268,7 @@ class CommandMode(EditorMode):
     def handle_input(self, controls):
         direction, key, modifiers = controls.input
         if direction == '+':
+            self.editor.text = ''
             if key == 'escape':
                 controls.set_mode('normal')
             elif key == 'enter':
