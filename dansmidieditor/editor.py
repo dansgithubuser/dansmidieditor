@@ -76,7 +76,7 @@ class Batch:
         )
         self.list.append(label)
 
-    def draw(self, reset):
+    def draw(self, reset=False):
         self.batch.draw()
         if reset:
             self.reset()
@@ -104,6 +104,9 @@ class Editor:
         self.unwritten = False
         self.path = 'untitled.mid'
         self.pyglet = pyglet
+        self.batch = None
+        self.h_window = None
+        self.w_window = None
         # layout
         self.margin = 6  # distance stuff should be from edge of screen, if it shouldn't touch
         self.text_size = 10
@@ -374,16 +377,19 @@ class Editor:
         if octave <= -1: return '{}vb'.format(1 - 7 * octave)
         return '.'
 
-    def draw(self, window):
+    def draw(self, window, from_scratch):
         pyglet = self.pyglet
         pyglet.gl.glClearColor(*self.color_background)
         window.clear()
         self.w_window, self.h_window = window.get_size()
-        batch = Batch(pyglet, self.h_window)
+        if not from_scratch:
+            self.batch.draw()
+            return
+        self.batch = Batch(pyglet, self.h_window)
         # quarters
         tph = 2 * self.song.ticks_per_quarter
         for i in range(self.duration // tph + 2):
-            batch.add_fill(
+            self.batch.add_fill(
                 xi=self.x_ticks((self.ticks // tph + i) * tph),
                 xf=self.x_ticks((self.ticks // tph + i) * tph + self.song.ticks_per_quarter),
                 yi=0,
@@ -394,7 +400,7 @@ class Editor:
         h=int(self.h_note())
         for m in range(self.multistaffing):
             for i in self.staves_to_draw():
-                batch.add_fill(
+                self.batch.add_fill(
                     xi=0,
                     xf=self.w_window,
                     yi=self.y_note(i, 24*m),
@@ -402,7 +408,7 @@ class Editor:
                     color=self.color_c_line,
                 )
                 for j in [4, 7, 11, 14, 17]:
-                    batch.add_fill(
+                    self.batch.add_fill(
                         xi=0,
                         xf=self.w_window,
                         yi=self.y_note(i, j+24*m),
@@ -413,7 +419,7 @@ class Editor:
         octaves = {}
         for staff in self.staves_to_draw():
             octaves[staff] = self.calculate_octave(staff)
-            batch.add_text(
+            self.batch.add_text(
                 self.notate_octave(octaves[staff]),
                 x=self.margin,
                 y=self.y_note(staff, 0) + self.h_note() / 2,
@@ -432,13 +438,13 @@ class Editor:
                         'xf': self.x_ticks(deltamsg.ticks + deltamsg.duration()),
                         'yi': self.y_note(staff, deltamsg.note(), octaves[staff]),
                     }
-                    batch.add_fill(
+                    self.batch.add_fill(
                         h=int(self.h_note()),
                         color=self.color_selected if self.is_selected(deltamsg) else self.color_notes,
                         **kwargs,
                     )
                     if deltamsg.note() - 12 * octaves[staff] > 24 * self.multistaffing - 4:
-                        batch.add_fill(
+                        self.batch.add_fill(
                             h=int(self.h_note() // 2),
                             color=self.color_warning,
                             **kwargs,
@@ -469,7 +475,7 @@ class Editor:
                 else:
                     line += 1
                 ticks = deltamsg.ticks
-                batch.add_text(
+                self.batch.add_text(
                     text,
                     x=self.x_ticks(deltamsg.ticks),
                     y=self.margin + self.text_size * line,
@@ -478,7 +484,7 @@ class Editor:
                     color=self.color_other,
                 )
         # cursor
-        batch.add_fill(
+        self.batch.add_fill(
             xi=self.x_ticks(int(self.cursor.ticks)),
             xf=self.x_ticks(int(self.cursor.ticks + self.cursor.duration)),
             yi=self.y_note(self.cursor.staff, self.cursor.note, octaves[self.cursor.staff]),
@@ -490,7 +496,7 @@ class Editor:
             start, finish = self.get_visual_duration()
             staff_i = min(self.visual.staff, self.cursor.staff)
             staff_f = max(self.visual.staff, self.cursor.staff)
-            batch.add_fill(
+            self.batch.add_fill(
                 xi=self.x_ticks(int(start)),
                 xf=self.x_ticks(int(finish)),
                 yi=self.y_note(staff_i, self.notes_per_staff()),
@@ -498,8 +504,7 @@ class Editor:
                 color=self.color_visual,
             )
         # text
-        batch.draw(True)
-        batch.add_text(
+        self.batch.add_text(
             self.text,
             x=self.margin,
             y=self.h_window - self.margin,
@@ -507,7 +512,7 @@ class Editor:
             h=self.text_size,
             color=self.color_text,
         )
-        batch.add_text(
+        self.batch.add_text(
             f'{float(self.cursor.ticks / self.song.ticks_per_quarter):.2f}',
             x=self.w_window - self.margin,
             anchor_x = 'right',
@@ -517,4 +522,4 @@ class Editor:
             color=self.color_text,
         )
         #
-        batch.draw(False)
+        self.batch.draw()

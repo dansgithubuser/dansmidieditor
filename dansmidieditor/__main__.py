@@ -192,6 +192,8 @@ def translate_modifiers(pyglet_modifiers):
 
 #===== run =====#
 window = pyglet.window.Window(caption="Dan's MIDI Editor", vsync=True, resizable=True)
+class F:
+    draw_from_scratch = True
 
 @window.event
 def on_key_press(symbol, modifiers):
@@ -201,6 +203,7 @@ def on_key_press(symbol, modifiers):
         controls.handle_input('+', key, translate_modifiers(modifiers))
         if controls.udata['done']:
             window.close()
+        F.draw_from_scratch = True
     return pyglet.event.EVENT_HANDLED
 
 @window.event
@@ -209,10 +212,12 @@ def on_key_release(symbol, modifiers):
         controls.handle_input('-', key, translate_modifiers(modifiers))
         if controls.udata['done']:
             window.close()
+        F.draw_from_scratch = True
     return pyglet.event.EVENT_HANDLED
 
 @window.event
 def on_draw():
-    editor.draw(window)
+    editor.draw(window, F.draw_from_scratch)
+    F.draw_from_scratch = False
 
 pyglet.app.run()
