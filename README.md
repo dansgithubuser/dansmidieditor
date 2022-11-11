@@ -10,7 +10,6 @@ Dan's MIDI Editor has a few goals:
 - recover previous features
     - try to do necessary edits
 - handle all msgs
-- horizontal scale shouldn't change when ticks per quarter does
 - indicator that more notes are off-screen
 - quantization
 - mouse

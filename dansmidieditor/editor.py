@@ -95,7 +95,7 @@ class Editor:
         self.staves = 4.0
         self.multistaffing = 1
         self.ticks = 0
-        self.duration = 5760
+        self.duration = 16 * self.song.ticks_per_quarter
         self.cursor = Cursor(self.song.ticks_per_quarter)
         self.deselect()
         self.unyank()
@@ -130,6 +130,7 @@ class Editor:
     def read(self, path, remember=True):
         self.song.load(path)
         if not self.song.tracks: self.song.tracks.append(midi.Track())
+        self.duration = 16 * self.song.ticks_per_quarter
         self.cursor.duration = Fraction(self.song.ticks_per_quarter)
         self.cursor_down(0)
         self.unwritten = False
