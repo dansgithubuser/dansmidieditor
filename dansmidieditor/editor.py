@@ -180,12 +180,20 @@ class Editor:
         self.cursor.duration = Fraction(self.song.ticks_per_quarter) * fraction_of_quarter
 
     # window
-    def more_multistaffing(self, amount=1):
+    def staves_add(self, amount=1):
+        self.staves += amount
+        self.staves = max(1, self.staves)
+        self.staves = min(32, self.staves)
+
+    def multistaffing_add(self, amount=1):
         self.multistaffing += amount
         self.multistaffing = max(1, self.multistaffing)
         self.multistaffing = min(6, self.multistaffing)
 
-    def less_multistaffing(self, amount=1): self.more_multistaffing(-amount)
+    def duration_add(self, amount=1):
+        self.duration += self.song.ticks_per_quarter * amount
+        self.duration = max(self.song.ticks_per_quarter, self.duration)
+        self.duration = min(self.song.ticks_per_quarter * 256, self.duration)
 
     # notes
     def add_note(self, number, advance=True):
